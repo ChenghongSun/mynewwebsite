@@ -138,12 +138,11 @@ disqusShortname = ""
   # Section Type Two
   [params.two]
     enable = true
-    title = "Massa libero"
-    subtitle = """Nullam et orci eu lorem consequat tincidunt vivamus et sagittis libero. 
-    Mauris aliquet magna magna sed nunc rhoncus pharetra. 
-    Pellentesque condimentum sem. In efficitur ligula tate urna. Maecenas laoreet massa vel lacinia pellentesque lorem ipsum dolor. 
-    Nullam et orci eu lorem consequat tincidunt. Vivamus et sagittis libero.
-    Mauris aliquet magna magna sed nunc rhoncus amet pharetra et feugiat tempus."""
+    title = "My personal experience"
+    subtitle = """ Chenghong's profile: 
+    Chenghong is a MFA student studying at London Business School. 
+    Born in 1998, he is a Chinese student with wide interests on volleyball, Go and jogging.
+    """
     buttonText = "Get Started"
     url = "blogs"
 
@@ -187,7 +186,7 @@ disqusShortname = ""
   # Footer section
   [params.footer]
     enable = true
-    copyright = "Company Name"
+    copyright = "Chenghong Sun"
 
     # Uses font awesome icons
     [[params.footer.social]]
@@ -197,7 +196,7 @@ disqusShortname = ""
 
     [[params.footer.social]]
       icon = "fa-facebook"
-      url= "https://www.facebook.com"
+      url= "https://www.facebook.com/chenghong.sun.16"
       label = "Facebook"
 
     [[params.footer.social]]
@@ -207,12 +206,12 @@ disqusShortname = ""
     
     [[params.footer.social]]
       icon = "fa-github"
-      url= "https://www.github.com"
+      url= "https://github.com/ChenghongSun"
       label = "GitHub"
 
     [[params.footer.social]]
       icon = "fa-linkedin"
-      url= "https://www.linkedin.com"
+      url= "https://www.linkedin.com/in/chenghong-sun-bb7bb5138/"
       label = "LinkedIn"
 
     [[params.footer.quicklinks]]
