@@ -8,7 +8,7 @@ draft: false
 image: pic10.jpg
 keywords: ""
 slug: blog1
-title: CAPM model 
+title: COVID-19 data
 ---
 
 # CDC COVID-19 Public Use Data
