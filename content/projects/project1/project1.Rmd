@@ -1,0 +1,1453 @@
+---
+
+```{r setup1, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, setup2, echo=FALSE}
+knitr::opts_chunk$set(
+  message = FALSE, 
+  warning = FALSE, 
+  tidy=FALSE,     # display code as typed
+  size="small")   # slightly smaller font for code
+options(digits = 3)
+
+# default figure size
+knitr::opts_chunk$set(
+  fig.width=6.75, 
+  fig.height=6.75,
+  fig.align = "center"
+)
+```
+
+
+```{r load-libraries, echo=FALSE}
+library(tidyverse)  # Load all packages
+library(mosaic)
+library(ggthemes)
+library(GGally)
+library(readxl)
+library(here)
+library(skimr)
+library(janitor)
+library(broom)
+library(tidyquant)
+library(infer)
+library(openintro)
+library(tidyquant)
+library(purrr)
+library(broom)
+library(GGally)
+library(huxtable)
+library(leaflet)
+library(ggfortify)
+library(olsrr)
+library(lmtest)
+library(sandwich)
+library(robust)
+library(robustbase)
+```
+
+# Exploratory Data Analysis
+```{r}
+# download data
+listings <- read_csv("http://data.insideairbnb.com/china/hk/hong-kong/2020-06-15/data/listings.csv.gz")
+```
+
+## 1. Looking at raw values, adjusting data types, dealing with NAs, and removing listings not for travel
+```{r}
+# Take a look at the data
+glimpse(listings)
+skim(listings)
+```
+
+### How many variables/columns? How many rows/observations?
+Number of rows: 11187   
+Number of columns: 106
+
+### Which variables are numbers?
+ 1 id                                                   
+ 2 scrape_id                                            
+ 3 host_id                                              
+ 4 host_listings_count                                 
+ 5 host_total_listings_count                           
+ 6 latitude                                             
+ 7 longitude                                            
+ 8 accommodates                                         
+ 9 bathrooms                                           
+10 bedrooms                                            
+11 beds                                                
+12 square_feet                                    
+13 guests_included                                      
+14 minimum_nights                                     
+15 maximum_nights                                       
+16 minimum_minimum_nights                               
+17 maximum_minimum_nights                               
+18 minimum_maximum_nights                               
+19 maximum_maximum_nights                               
+20 minimum_nights_avg_ntm                               
+21 maximum_nights_avg_ntm                               
+22 availability_30                                      
+23 availability_60                                      
+24 availability_90                                      
+25 availability_365                                     
+26 number_of_reviews                                    
+27 number_of_reviews_ltm                                
+28 review_scores_rating                              
+29 review_scores_accuracy                            
+30 review_scores_cleanliness                         
+31 review_scores_checkin                             
+32 review_scores_communication                       
+33 review_scores_location                            
+34 review_scores_value                               
+35 calculated_host_listings_count                       
+36 calculated_host_listings_count_entire_homes          
+37 calculated_host_listings_count_private_rooms         
+38 calculated_host_listings_count_shared_rooms          
+39 reviews_per_month 
+
+ID, Scrape ID or Host ID are currently numerics but they should be transformed into factors. 
+
+### Which are categorical or factor variables (numeric or character variables with variables that have a fixed and known set of possible values?
+review_scores_rating                              
+review_scores_accuracy                            
+review_scores_cleanliness                         
+review_scores_checkin                             
+review_scores_communication                       
+review_scores_location                            
+review_scores_value 
+latitude                                             
+longitude                                            
+availability_30                                      
+availability_60                                      
+availability_90                                      
+availability_365                                     
+host_response_time           
+host_response_rate            
+host_acceptance_rate         
+property_type                
+room_type                      
+bed_type                               
+cancellation_policy                              
+host neighborhood 
+country_code                  
+country   
+amenities                
+host_verifications
+neighbourhood_cleansed
+Market                         
+
+### Correcting data types
+
+From characters to numericals
+```{r}
+#converting variables to numericals
+listings <- listings %>% 
+  mutate(price = parse_number(price), 
+         host_response_time=parse_number(host_response_time),
+         host_response_rate=parse_number(host_response_rate),
+         host_acceptance_rate=parse_number(host_acceptance_rate),
+         weekly_price=parse_number(weekly_price),
+         monthly_price=parse_number(monthly_price),
+         security_deposit=parse_number(security_deposit),
+         cleaning_fee=parse_number(cleaning_fee),
+         extra_people=parse_number(extra_people))
+```
+
+From characters to date
+```{r}
+#converting variables to dates
+listings <- listings%>% 
+mutate(calendar_updated=parse_date(calendar_updated))
+```
+
+To factor 
+```{r}
+#converting variables to factors 
+listings$property_type <- as.factor(listings$property_type) 
+listings$room_type <- as.factor(listings$room_type)
+listings$bed_type <- as.factor(listings$bed_type)
+listings$cancellation_policy <- as.factor(listings$cancellation_policy)
+
+#count by property type
+listings %>% 
+count(property_type) %>% arrange(desc(n))
+
+#simplify property type
+listings <- listings %>%
+  mutate(prop_type_simplified = case_when(
+    property_type=="Apartment"~"Apartment",
+    property_type=="Condominium"~"Condominium",
+    property_type=="Serviced apartment"~"Serviced apartment",
+    property_type=="Hostel"~"Hostel",
+    TRUE ~ "Other"
+  ))
+
+#please ignore this for now, we will need this variable in model 12
+Listings_travel_purpose_new <- listings %>% 
+  filter(minimum_nights<=4)
+
+listings <- listings %>%
+  mutate(prop_type_simplified_new = case_when(
+    property_type=="Apartment"~"Living_property",
+    property_type=="Condominium"~"Living_property",
+    property_type=="Serviced apartment"~"Living_property",
+    property_type=="Loft"~"Living_property",
+    property_type=="Hostel"~"Hostel",
+    property_type=="House"~"Living_property",
+    property_type=="Guest house"~"Living_property",
+    property_type=="Hotel"~"Hotel",
+    property_type=="Boutique hotel"~"Hotel",
+    property_type=="Bed and breakfast"~"Hotel",
+    TRUE ~ "Other"
+  ))
+
+#Use the code below to check that prop_type_simplified was correctly made.
+listings %>%
+  count(property_type, prop_type_simplified) %>%
+  arrange(desc(n)) 
+```
+
+```{r}
+#check whether variables have been assigned to new variable types
+skim(listings)
+```
+
+### Handling missing values 
+
+Converting Security deposit and cleaning fee deposit NAs to 0 as we assume that NA means that no cleaning fee or security deposit has to be paid. There are 5677 missing values for security deposit 5055 missing values for cleaning fee. 
+```{r}
+#change cleaning fee NAs to 0
+listings <- listings %>%
+  mutate(cleaning_fee = case_when(
+    is.na(cleaning_fee) ~ 0, 
+    TRUE ~ cleaning_fee
+  ))
+
+#change security deposit NAs to 0
+listings <- listings %>%
+  mutate(security_deposit = case_when(
+    is.na(security_deposit) ~ 0, 
+    TRUE ~ security_deposit
+  ))
+
+# Security deposit and cleaning fee now have no NAs anymore
+skim(listings)
+```
+
+### Removing Listings Not for Travel Purposes
+```{r}
+#Count Minimum Nights
+listings %>% 
+  count(minimum_nights) %>% 
+#Sort them in descending order
+  arrange(desc(n))
+```
+Findings: The most common minimum nights are 1, 2, and 29. The 29,28 and 30 days are obviously not for travel purposes so we need to filter them out. Those unusual values may be for renting purposes such as short-term visit for business purpose and studying abroad for students.But most listings are for travel purposes. 
+
+```{r}
+#Filter out listings for travel purposes
+Listings_travel_purpose <- listings %>% 
+  filter(minimum_nights<=4)
+```
+
+##Calculating Summary Statistics
+
+### First, identify variables of interest
+```{r}
+Listings_variables_of_interest <- Listings_travel_purpose %>% 
+#select the variables we want to analyze
+  select(c(host_is_superhost,
+           neighbourhood_cleansed,
+           prop_type_simplified,
+           room_type,
+           price,
+           review_scores_rating,
+           reviews_per_month,
+           cleaning_fee,
+           bed_type,
+           bathrooms,
+           bedrooms,
+           square_feet,
+           extra_people,
+           is_business_travel_ready,
+           guests_included,
+           number_of_reviews,
+           extra_people,
+           number_of_reviews, 
+           beds,
+           accommodates,
+           cancellation_policy,
+           host_identity_verified,
+           prop_type_simplified_new
+           )) 
+```
+
+### Bin variables when necessary
+
+```{r}
+#Bin ratings
+# set up cut-off values 
+breaks <- c(0,10,20,30,40,50,60,70,80,90,100)
+# specify interval/bin labels
+tags <- c("[0-10)","[10-20)", "[20-30)", "[30-40)", "[40-50)", "[50-60)","[60-70)", "[70-80)","[80-90)", "[90-100)")
+# bucketing values into bins
+bin_review_scores<- cut(Listings_variables_of_interest$review_scores_rating, 
+                  breaks=breaks, 
+                  include.lowest=TRUE, 
+                  right=FALSE, 
+                  labels=tags)
+# inspect bins
+summary(bin_review_scores)
+
+#Bin reviews per months
+# set up cut-off values 
+breaks <- c(0,1,5,10)
+# specify interval/bin labels
+tags <- c("[0-5)","[5-10)", "[10-15)")
+# bucketing values into bins
+bin_reviews_per_month<- cut(Listings_variables_of_interest$reviews_per_month, 
+                  breaks=breaks, 
+                  include.lowest=TRUE, 
+                  right=FALSE, 
+                  labels=tags)
+
+#Bin square_feet
+# set up cut-off values 
+breaks <- c(0,500,1000,1500,2000)
+# specify interval/bin labels
+tags <- c("[0-500)","[500-1000)", "[1000-1500)","[1500-2000)")
+# bucketing values into bins
+bin_square_feet<- cut(Listings_variables_of_interest$square_feet, 
+                  breaks=breaks, 
+                  include.lowest=TRUE, 
+                  right=FALSE, 
+                  labels=tags)
+# inspect bins
+summary(bin_square_feet)
+
+#Bin extra_people
+# set up cut-off values 
+breaks <- c(0,500,1000,1500,2000,2500)
+# specify interval/bin labels
+tags <- c("[0-500)","[500-1000)", "[1000-1500)","[1500-2000)","[2000-2500)")
+# bucketing values into bins
+bin_extra_people<- cut(Listings_variables_of_interest$extra_people, 
+                  breaks=breaks,
+                  include.lowest=TRUE, 
+                  right=FALSE, 
+                  labels=tags)
+# inspect bins
+summary(bin_extra_people)
+```
+
+###Now, calculate favstats
+```{r}
+#Summary stats of price by square feet
+mosaic::favstats (price~bin_square_feet, data=Listings_variables_of_interest) %>%
+  arrange(desc(mean))
+
+#Summary stats of price reviews per month
+mosaic::favstats (price~bin_reviews_per_month, data=Listings_variables_of_interest) %>%
+  arrange(desc(mean))
+
+#Summary stats of price by review scores
+mosaic::favstats (price~bin_review_scores, data=Listings_variables_of_interest) %>%
+  arrange(desc(mean))
+
+#Summary stats of price by room_type
+mosaic::favstats (price~room_type, data=Listings_variables_of_interest) %>%
+  arrange(desc(mean))
+
+#Summary stats of price by whether host is a superhost or not
+mosaic::favstats (price~host_is_superhost, data=Listings_variables_of_interest) %>%
+  arrange(desc(mean))
+
+#Summary stats of price by property type
+mosaic::favstats (price~prop_type_simplified, data=Listings_variables_of_interest) %>%
+  arrange(desc(mean))
+
+#Summary stats of price by neighborhood
+mosaic::favstats (price~neighbourhood_cleansed, data=Listings_variables_of_interest) %>%
+  arrange(desc(mean))
+
+#Summary stats of price by number of bedrooms
+mosaic::favstats (price~bedrooms, data=Listings_variables_of_interest) %>%
+  arrange(desc(mean))
+
+#Summary stats of price by bed type
+mosaic::favstats (price~bed_type, data=Listings_variables_of_interest) %>%
+  arrange(desc(mean))
+
+#Summary stats of price by number of bathrooms
+mosaic::favstats (price~bathrooms, data=Listings_variables_of_interest) %>%
+  arrange(desc(mean))
+
+#Summary stats of price by price for extra people
+mosaic::favstats (price~bin_extra_people, data=Listings_variables_of_interest) %>%
+  arrange(desc(mean))
+
+#Summary stats of price by accommodates
+mosaic::favstats (price~accommodates, data=Listings_variables_of_interest) %>%
+  arrange(desc(mean))
+
+#Summary stats of price by cancellation policy
+mosaic::favstats (price~cancellation_policy, data=Listings_variables_of_interest) %>%
+  arrange(desc(mean))
+
+
+#Summary stats of price by price for business travel ready
+mosaic::favstats (price~is_business_travel_ready 
+                  , data=listings) %>%
+  arrange(desc(mean))
+
+# Comments: they are no true values for business travel ready. Thus the variable will not be useful for our analysis
+```
+
+##Visualise the data 
+
+### Geospatial Visualisation
+
+```{r}
+leaflet(data = filter(listings, minimum_nights <= 4)) %>% 
+  addProviderTiles("OpenStreetMap.Mapnik") %>% 
+  addCircleMarkers(lng = ~longitude, 
+                   lat = ~latitude, 
+                   radius = 1, 
+                   fillColor = "blue", 
+                   fillOpacity = 0.4, 
+                   popup = ~listing_url,
+                   label = ~property_type)
+```
+
+### What are the correlations between numerical variables? 
+```{r}
+listings %>% 
+ select(c( price,
+           review_scores_rating,
+           reviews_per_month,
+           bathrooms,
+           bedrooms,
+           square_feet
+           ))  %>%
+ggpairs()
+```
+### Does each scatterplot support a linear relationship between variables? 
+While some variables seem to have a strong linear relationship e.g. bedrooms and bathrooms, others do not seem to have any strong relationship e.g. reviews per month and price. For a closer analysis see below. 
+
+### Square feet & price
+
+```{r}
+ggplot(Listings_variables_of_interest,
+       aes(x=square_feet, y= price))+
+  geom_point()+
+  
+#add theme
+  theme_economist()+
+
+#add labels
+  labs(title= "Many NAs for square feet",x="Square Foot",y="Price")
+  NULL
+```
+Key findings
+*We find out that square feet and price has a high correlation. Thus, we decide to take a more detailed look into these two variables. But we found that there are only a few data points there. Therefore, we decide to exclude square_feet in our future analysis
+
+### Price & reviews per month / review scores and number 
+
+Review Scores
+```{r}
+#create a plot 
+ggplot(Listings_variables_of_interest, 
+       aes(x=review_scores_rating,y=price))+
+  
+#use Geompoint for continous variables
+  geom_point()+
+
+#set axis y limit due to outlier
+   ylim(0, 15000)+
+  
+#add line of best fit 
+  
+  geom_smooth(color="red")+
+
+#add labels
+
+labs(title = "Weak relationship between review scores ratings
+and price", x="Review Scores", y= "Price")+
+  
+# add theme 
+theme_economist()+
+
+  NULL
+
+```
+
+Number of reviews per month 
+```{r}
+#create a plot 
+ggplot(Listings_variables_of_interest, 
+       aes(x=reviews_per_month,y=price))+
+  
+#use Geompoint for continous variables
+  geom_point()+
+  
+#set axis y limit due to outlier
+   ylim(0, 15000)+
+
+#add line of best fit 
+  
+  geom_smooth(color="red")+
+
+#add labels 
+
+labs(title= "Slight negative relationship between prices
+and reviews per month
+", x="Reviews per month", y="Price")+
+  
+# add theme 
+theme_economist()+
+  
+  NULL
+
+```
+
+Number of reviews per month 
+```{r}
+#create a plot 
+ggplot(Listings_variables_of_interest, 
+       aes(x=review_scores_rating,y=reviews_per_month))+
+  
+#use Geompoint for continous variables
+  geom_point()+
+  
+#set axis y limit due to outlier
+  
+
+#add line of best fit 
+  
+  geom_smooth(color="red")+
+
+#add labels 
+
+labs(title= "Slight positive relationship between review scores rating
+and reviews per month
+", x="Reviews per month", y="Review scores rating")+
+  
+# add theme 
+theme_economist()+
+  
+  NULL
+
+```
+
+Key findings 
+*Review scores, the number of reviews or the numbers of listings done by the host do not seem to correlate with the price
+
+### Dummy Variables
+
+```{r}
+listings %>% 
+ select(c( prop_type_simplified,
+           room_type,
+           bed_type,
+           price,
+           review_scores_rating,
+           bathrooms,
+           bedrooms,
+           ))  %>%
+ggpairs()
+```
+## Do any of the correlations appear to be conditional on the value of a categorical variable?
+
+We tried to look at the relationships between categorical and numerical values by plotting those variables using bar graphs. 
+We found that many of them have a strong impact on price. For further analysis and see the graphs and key findings below. 
+
+### Price & bed type
+```{r}
+#creating averages for different bed types
+average_price_bed_type <- Listings_variables_of_interest %>% 
+  group_by(bed_type) %>%   #grouping data by bed type
+  
+  # creating summaries for mean price 
+  # use `na.rm=TRUE` to eliminate NA (not available) values 
+  summarise(average_price_bed_type = mean(price, na.rm=TRUE)) 
+
+ggplot(average_price_bed_type, 
+       aes(x = average_price_bed_type, 
+           y = reorder(bed_type,average_price_bed_type)))+
+  geom_bar(stat="identity")+
+  labs(title = "Which bed type has the highest mean?", 
+        x="Average price",y="Bed type")+
+  theme_economist()+
+  NULL
+```
+Key findings:
+*We found out that the airbnbs with real beds have the highest average price while the ones with airbeds have the lowest average price.That makes a lot of sense for us since the more comfortable the beds, the higher price of the listings. 
+
+### Price & property type
+```{r}
+#creating averages for different property types
+average_price_property_type <- Listings_variables_of_interest %>% 
+  group_by(prop_type_simplified) %>%   #grouping data by property type
+  
+  # creating summaries for mean price 
+  # use `na.rm=TRUE` to eliminate NA (not available) values 
+  summarise(average_price_property_type = mean(price, na.rm=TRUE)) 
+
+ggplot(average_price_property_type, 
+       aes(x = average_price_property_type, 
+           y = reorder(prop_type_simplified,average_price_property_type)))+
+  
+  geom_bar(stat="identity")+
+  
+  labs(title = "Serviced Apartment has the highest mean", 
+        x="Average price",y="Property type")+
+  
+  theme_economist()+
+  NULL
+```
+Key findings
+*Serviced appartments have the highest mean prices
+*Average prices by property type vary significantly
+
+### Price & host_is_superhost
+```{r}
+#creating averages for different property types
+average_host_is_superhost <- Listings_variables_of_interest %>% 
+  group_by(host_is_superhost) %>%   #grouping data by whether the host is super host
+  
+  # creating summaries for mean price 
+  # use `na.rm=TRUE` to eliminate NA (not available) values 
+  summarise(average_host_is_superhost = mean(price, na.rm=TRUE)) %>%
+  na.omit()
+
+ggplot(average_host_is_superhost, 
+       aes(x = average_host_is_superhost, 
+           y = reorder(host_is_superhost,average_host_is_superhost)))+
+  geom_bar(stat="identity")+
+  labs(title = "Super Hosts Have Higher Average Listing Price", 
+        x="Average price",y="Superhost or not")+ 
+  theme_economist()+
+  NULL
+```
+Key findings
+*Superhosts have a higerh average listing price
+
+### Price & Neighbourhoods
+```{r}
+#group by neighbourhood
+price_neighbourhood <- Listings_variables_of_interest %>% 
+  group_by(neighbourhood_cleansed) %>% 
+
+# find mean price for each neighbourhood
+  summarise(mean_price=mean(price))
+
+#plot graph
+ggplot(price_neighbourhood,
+       aes(x=mean_price,y=reorder(neighbourhood_cleansed,mean_price)))+
+#add labels
+  labs(title = "Tai Po is the most expensive neighbourhood
+for AirBnBs
+       ", x="Mean Price", y="")+
+ 
+#as a bar graph
+  geom_col()+
+
+# add theme 
+theme_economist()+
+
+#remove legend
+
+theme(legend.position = "none")+
+  
+  NULL
+  
+```
+
+Are appartments in Tai Po, Southern, Kwun Tong larger? 
+
+```{r}
+#group by neighbourhood
+bedrooms_neighbourhood <- Listings_variables_of_interest %>% 
+  group_by(neighbourhood_cleansed) %>% 
+
+# find mean price for each neighbourhood
+  summarise(mean_bedrooms=mean(bedrooms))
+
+bedrooms_neighbourhood
+
+#plot graph
+ggplot(bedrooms_neighbourhood,
+       aes(x=mean_bedrooms,y=reorder(neighbourhood_cleansed,mean_bedrooms)))+
+#add labels
+  labs(title = "Southern, Norther and Tai Po also 
+have the highest number of bedrooms", x="Mean number of bedrooms", y="")+
+ 
+#as a bar graph
+  geom_col()+
+
+# add theme 
+theme_economist()+
+
+    
+#remove legend
+theme(legend.position = "none")+
+  
+  NULL
+```
+Key findings
+*Neighborhood strongly impacts the price of an AirBnB
+*The neighborhoods with highest average prices for AirBnBs aslo tend to have more bedrooms 
+
+### Price & bedrooms
+```{r}
+#group by bedrooms
+bedrooms_price <- Listings_variables_of_interest %>% 
+  group_by(bedrooms) %>% 
+
+# find mean price for each neighbourhood
+  summarise(mean_price_bed=mean(price))
+
+bedrooms_price
+
+#plot graph
+ggplot(bedrooms_price,
+       aes(x=bedrooms,y=mean_price_bed))+
+#add labels
+  labs(title = "A higher number of bedrooms seems to be associated 
+with a higher price", x="Mean number of bedrooms", y="Price")+
+ 
+#as a bar graph
+  geom_col()+
+    
+#remove legend
+theme(legend.position = "none")+
+  
+# add theme 
+theme_economist()+
+  
+  NULL
+```
+Key findings: 
+*Prices seem to be increasing with the number of bedrooms but the relationship has strong irregularities
+*There is no data for number of bedrooms in Yuen Long, Yau Tsim Mong, Wan Chai, Sham Shui Po, Eastern, Central & Western
+
+### Price & number of beds
+```{r}
+#creating averages for different bed types
+average_price_bed <- Listings_variables_of_interest %>% 
+  group_by(beds) %>%   #grouping data by number of beds
+  
+  # creating summaries for mean price 
+  # use `na.rm=TRUE` to eliminate NA (not available) values 
+  summarise(average_price_bed = mean(price, na.rm=TRUE)) 
+
+ggplot(average_price_bed, 
+       aes(x = beds, 
+           y = average_price_bed))+
+  geom_bar(stat="identity")+
+  labs(title = "Price and number of beds increase together 
+up to 6 beds then the relationship is irregular", 
+        x="Number of beds",y="Average price")+
+  theme_economist()+
+  NULL
+```
+
+Key findings: 
+*There is a strong positive relationship between average price and number of beds up to 6 bedrooms
+*Beyond 6 bedrooms the relationship is irregular
+
+### Price & number of accommodates
+```{r}
+#creating averages for different bed types
+average_price_acc <- Listings_variables_of_interest %>% 
+  group_by(accommodates) %>%   #grouping data by number of accomodates
+  
+  # creating summaries for mean price 
+  # use `na.rm=TRUE` to eliminate NA (not available) values 
+  summarise(average_price_acc = mean(price, na.rm=TRUE)) 
+
+ggplot(average_price_acc, 
+       aes(x = accommodates, 
+           y = average_price_acc))+
+  geom_bar(stat="identity")+
+  labs(title = "Between 1 and 6 accomodates the number of 
+accomodates increases average price", 
+        x="Number of accommodates",y="Average price")+
+  theme_economist()+
+  NULL
+```
+Key findings: 
+*There is a strong positive relationship between average price and accommodates up to 6 bedrooms
+*Beyond 6 bedrooms the the average price decreases up to 10 accommodates and increases again up to 13
+*Beyond 13 accommodates each extra accommodate leads to a fall in average price
+
+### Price & cancellation policy
+```{r}
+#creating averages for different bed types
+average_price_canc<- Listings_variables_of_interest %>% 
+  group_by(cancellation_policy) %>%   #grouping data by cancellation policy
+  
+  # creating summaries for mean price 
+  # use `na.rm=TRUE` to eliminate NA (not available) values 
+  summarise(average_price_canc = mean(price, na.rm=TRUE)) 
+
+ggplot(average_price_canc, 
+       aes(x = average_price_canc, 
+           y = reorder(cancellation_policy,average_price_canc)))+
+  geom_bar(stat="identity")+
+  labs(title = "Super strict 30 and strict have the lowest
+mean price", 
+        x="Average price",y="")+
+  theme_economist()+
+  NULL
+```
+Key findings: 
+*Super Strict 30 days and strict command the lowest average prices
+*All other cancellation policies show only slight differences in average prices
+
+# Regression
+## Creating dependent variables
+For the target variable , we will use the cost for two people to stay at an Airbnb location for four (4) nights.
+
+Create a new variable called price_4_nights that uses price, cleaning_fee, guests_included, and extra_people to calculate the total cost for two people to stay at the Airbnb property for 4 nights. This is the variable  we want to explain.
+
+```{r}
+Listings_variables_of_interest<-Listings_variables_of_interest %>%
+mutate( price_4_nights = case_when(
+      guests_included == 1 ~  (4* (price + extra_people)+cleaning_fee),
+      TRUE ~ (cleaning_fee + 4*price)))
+
+
+```
+
+We explore the distributions of price_4_nights and log(price_4_nights) to see which is more suitable in the regression model?
+
+```{r, fig.width= 10}
+#create histogram
+ggplot(Listings_variables_of_interest, aes(x=price_4_nights))+
+  geom_histogram()+
+  labs(title="Price distribution", x= "Price for 2 people for 4 nights" )+
+scale_x_continuous( breaks = seq (0,20000, by = 1000), limits = c(0,20000))
+```
+
+```{r, fig.width= 10}
+#creating a new variable log_price_4_nights
+Listings_variables_of_interest<-Listings_variables_of_interest%>%
+  mutate(log_price_4_nights=log(price_4_nights))%>%
+  filter(log_price_4_nights!=-Inf)
+
+#we plot the log prices
+ggplot(Listings_variables_of_interest, aes(x=log_price_4_nights))+
+  geom_histogram()+
+  labs(title="Log-Price distribution", x= "Log-Price for 2 people for 4 nights" )
+
+```
+
+## Building a model
+
+When building our model we will aim for explaining as much of the dependent variable as possible (highest possible Adj. R^2) while maintaining significant coefficient (p-values below 0.05) and having the best model pass all diagnostic checks.
+
+We choose variables including prop_type_simplified, number_of_reviews, and review_scores_rating at first because they're self-explanatory through common knowledge. Airbnbs with higher scores and more reviews are usually of higher quality, as a result they charge a higher price. Meanwhile, controlling all other factors the same, the property type would also affect the price for people living in. A palace or a large house would definitely charge for a higher price than the apartment. Then we try to add more variables in each model. For model 2, we introduce the room type. It's similar with the property type. If it's the entire housing, the price would be higher than just one private room. For model 3 & 4, we try beds and accommodates on each. They are of similar meaning. More beds mean that it can host more accommodates. Thus, the price would also be higher accordingly. In model 5, a new variable neighborhood_cleansed is introduced. It accounts for the changes of price because the housing price of different neighborhoods may vary. In model 6, if the host is superhost is investigated. Superhosts may have better quality airbnbs and the price would be higher accordingly. In model 7,8 and 9, bed_type, bed number and bathroom are also introduced because the facilities in the house may affect rent price.  
+
+Fit a regression model called model1 with the following explanatory variables: prop_type_simplified, number_of_reviews, and review_scores_rating.
+
+```{r}
+
+#We build model1
+model1 <- lm(log_price_4_nights ~ prop_type_simplified + number_of_reviews + review_scores_rating, data = Listings_variables_of_interest)
+
+#we get statistics
+model1 %>% broom::tidy()
+model1 %>% broom::glance()
+
+#Check for multicollinearity
+car::vif(model1)
+
+#all variables are significant and multicollineartity test passed
+```
+All our Model1 coefficients are statistically significant as indicated by p-values below 0.05.
+
+Interpreting coefficient review_scores_rating in terms of price_4_nights:
+
+An increase in rating by 1 unit would produce an expected increase of 0.005954 in log_price_4_nights and therefore an e^0.005954 increase in price_4_nights or an approximately 0.6% increase in price_4_nights.
+
+Interpreting coefficients of prop_type_simplified:
+The property type being either a  condominium, hostel, other or service apartment respectively will produce an expected decrease of 13.03%, 47.54%, 17.79% and 17.81 % respectively in price_4_nights compared to the property being an apartment.
+
+```{r}
+#We build model2 adding room_type
+model2 <- lm(log_price_4_nights ~ 
+               prop_type_simplified + 
+               number_of_reviews + 
+               review_scores_rating + 
+               room_type,
+             data = Listings_variables_of_interest)
+
+#we get statistics
+model2 %>% broom::tidy()
+model2 %>% broom::glance()
+
+#This checks for multicollinearity
+car::vif(model2)
+
+#model is improved and multicollineartity test passed
+```
+We want to determine if room_type is a significant predictor of the cost for 4 nights, given everything else in the model. Fit a regression model called model2 that includes all of the explanatory variables in model1 plus room_type.
+
+Room_type is a significant predictor as seen in p-values below 0.05 on dummy coefficients.
+
+```{r}
+#We build model3 adding beds
+model3 <- lm(log_price_4_nights ~ 
+               prop_type_simplified + 
+               number_of_reviews + 
+               review_scores_rating + 
+               room_type+
+               beds,
+             data = Listings_variables_of_interest)
+
+
+#we get statistics
+model3 %>% broom::tidy()
+model3 %>% broom::glance()
+
+#This checks for multicollinearity
+car::vif(model3)
+
+#model is improved and multicollineartity test passed
+
+```
+The number of beds is significant predictor of log_price_4_nights. Coefficients show that each additional bedroom is associated with $0.129036 increase in log_price_4_nights.
+
+```{r}
+#We build model4 exchanging bed for similar variable accomodates
+model4 <- lm(log_price_4_nights ~ 
+               prop_type_simplified + 
+               number_of_reviews + 
+               review_scores_rating + 
+               room_type+
+               accommodates,
+             
+             data = Listings_variables_of_interest)
+
+
+#we get statistics
+model4 %>% broom::tidy()
+model4 %>% broom::glance()
+
+#This checks for multicollinearity
+car::vif(model4)
+
+#multicollineartity test passed
+#accomodates better than beds
+
+```
+In model 4, we use accomodates instead of beds and observe the adjusted R squared increased from 0.301 to 0.34. The variable remains significant, which means that the accomodates is a better predictor than beds. In addition, when accomodate number increases by one, there would an increase of $0.106852 on log_price_4_nights.
+
+```{r}
+#We build model5 adding neighbourhood_cleansed
+model5 <- lm(log_price_4_nights ~ 
+               prop_type_simplified + 
+               number_of_reviews + 
+               review_scores_rating + 
+               room_type+
+               accommodates+
+               neighbourhood_cleansed,
+             
+             data = Listings_variables_of_interest)
+
+
+#we get statistics
+model5 %>% broom::tidy()
+model5 %>% broom::glance()
+
+#This checks for multicollinearity
+car::vif(model5)
+
+#model is improved and multicollineartity test passed
+
+```
+In model 5, we introduced a new variable named neighbourhood_cleansed. It increased our squared R squared further to 0.385. Further investigating the data, we can find that certain neibourhoods have positive effect on the log_price_4_nights while others have negative effect. Those of positive coefficient value district had better security level and economic development than others. The North, with the coefficent of -0.709, is one of the least developed areas in Hong Kong.
+
+```{r}
+#We build model6 adding host_is_superhost
+model6 <- lm(log_price_4_nights ~ 
+               number_of_reviews + 
+               prop_type_simplified+
+               room_type+
+               review_scores_rating + 
+               accommodates+
+               neighbourhood_cleansed+
+               host_is_superhost,
+             
+             data = Listings_variables_of_interest)
+
+
+#we get statistics
+model6 %>% broom::tidy()
+model6 %>% broom::glance()
+
+#This checks for multicollinearity
+car::vif(model6)
+
+#model is improved and multicollineartity test passed
+
+```
+
+In model 6, we add in the variable if the host is a superhost. We estimate that its coefficient would have a significant positive value because the logic holds that if the host is superhost, the airbnbs are of higher quality and can charge higher.
+
+
+```{r}
+#We build model7 adding bed_type
+model7 <- lm(log_price_4_nights ~ 
+               prop_type_simplified + 
+               number_of_reviews + 
+               review_scores_rating + 
+               accommodates+
+               host_is_superhost+
+               neighbourhood_cleansed+
+               room_type+
+               bed_type,
+             
+             data = Listings_variables_of_interest)
+
+
+#we get statistics
+model7 %>% broom::tidy()
+model7 %>% broom::glance()
+
+#This checks for multicollinearity
+car::vif(model7)
+
+#It was not able to capture any further variation in Y
+
+```
+In this model we add the variable bed_type. We estimate that there would be some changes if the bed type is different (real bed, futon, pull-out sofa, couch and air-bed). But we also think that it might only have a very tiny difference on the whole model because over 99% of the bed types are real beds. And the results proved our estimation and the adjusted R squared did not change much and the coefficients for bed-types are not significant, so we decide to exclude bad_type.
+
+```{r}
+#We build model8 adding bathrooms to model6
+model8 <- lm(log_price_4_nights ~ 
+               prop_type_simplified + 
+               number_of_reviews + 
+               review_scores_rating + 
+               accommodates+
+               host_is_superhost+
+               neighbourhood_cleansed+
+               room_type+
+               bathrooms,
+             
+             data = Listings_variables_of_interest)
+
+
+#we get statistics
+model8 %>% broom::tidy()
+model8 %>% broom::glance()
+
+#This checks for multicollinearity
+car::vif(model8)
+
+#It was not able to capture any further variation in Y
+
+```
+Bathrooms may also be a factor that could change the price. Because the more bathrooms they have, the price may be higher because the place is larger. However, it's not significant enough to change the adjust R squared and its coefficient is really small, 0.00843, so we decide to exclude it from the model.
+
+```{r}
+#We build model9 adding beds to model6
+model9 <- lm(log_price_4_nights ~ 
+               prop_type_simplified + 
+               number_of_reviews + 
+               review_scores_rating + 
+               accommodates+
+               host_is_superhost+
+               neighbourhood_cleansed+
+               room_type+
+               beds,
+             
+             data = Listings_variables_of_interest)
+
+
+#we get statistics
+model9 %>% broom::tidy()
+model9 %>% broom::glance()
+
+#This checks for multicollinearity
+car::vif(model9)
+
+#Despite predicting it to be very similar to accommodates, the beds variable is significant and slightly improved out model. There is however a slightly elevated level of multicollineairty as well but not near dangerous levels.
+
+```
+
+```{r}
+#We build model10 adding cancellation_policy 
+model10 <-  lm(log_price_4_nights ~ 
+               prop_type_simplified + 
+               number_of_reviews + 
+               review_scores_rating + 
+               accommodates+
+               host_is_superhost+
+               neighbourhood_cleansed+
+               room_type+
+               beds+
+               cancellation_policy,
+             
+             data = Listings_variables_of_interest)
+
+
+#we get statistics
+model10 %>% broom::tidy()
+model10 %>% broom::glance()
+
+#This checks for multicollinearity
+car::vif(model10)
+
+#model is improved and multicollineartity test passed
+
+```
+The cancellation policy is a quite significant predictor on price, with a super_strict_60 commanding a highest price. But we find that the coefficients are not significant for strict and super_strict_30 policy, which means that wit is probably best to categorize the variable in the in the final model (we will do it later).
+
+```{r}
+#We build model11 adding host_verified
+model11 <-  lm(log_price_4_nights ~ 
+               prop_type_simplified + 
+               number_of_reviews + 
+               review_scores_rating + 
+               accommodates+
+               host_is_superhost+
+               neighbourhood_cleansed+
+               room_type+
+               beds+
+               cancellation_policy+
+               host_identity_verified,
+             
+             data = Listings_variables_of_interest)
+
+
+#we get statistics
+model11 %>% broom::tidy()
+model11 %>% broom::glance()
+
+#This checks for multicollinearity
+car::vif(model11)
+
+#model is improved and multicollineartity test passed
+
+```
+The host_identity_verified is a significant predictor on price (p value very close to 0) and the adjusted R-squared improved from 0.403 to 0.406.
+
+##Transforming factor variables
+We believe that we have included all variables that could help explain our dependent variable within model 11. Within the factor variables there are some coefficients that are insignificant. We will attempt to transform these factor variables to only have significant coefficients and further improve the model.
+
+```{r}
+
+#There are so many types of the neighbourhood_cleansed, so we need to further simplify it. Before it is divided into 17 districts, we find that these 17 districts belong to 3 different regions. So we came up with the neighbourhood_simplified.
+  
+Listings_variables_of_interest <-Listings_variables_of_interest %>%
+  mutate(neighbourhood_simplified = case_when(
+    neighbourhood_cleansed %in% c("Wan Chai","Central & Western", "Eastern","Southern") ~ "Hong Kong Island", 
+    neighbourhood_cleansed %in% c("Yau Tsim Mong","Sham Shui Po","Kowloon City","Wong Tai Sin","Kwun Tong") ~ "Kowloon",
+    neighbourhood_cleansed %in% c("Yuen Long","Islands", "North","Sha Tin","Sai Kung","Tai Po","Tsuen Wan","Tuen Mun") ~ "New Territories"
+  ))
+ 
+
+#Similarly, we divide the cancellation_policy into two categories
+Listings_variables_of_interest <-Listings_variables_of_interest %>%
+mutate(cancellation_policy_simplified = case_when(
+    cancellation_policy %in% c("strict_14_with_grace_period","	
+super_strict_60","super_strict_30") ~ "Strict",
+    cancellation_policy %in% c("moderate","flexible") ~ "Not strict", 
+  ))
+
+#We also try to change the way we differentiate property type, as some coefficients were insignificant. Condominium and serviced apartment are for example similar to apartment. We try to place all property_types with above 50 properties to categories based on what we assume to be similar property types and put remaining into Other. This factor variable has already been simplified at the beginning and we want to use some values that have been categorized as Other before. To ensure the same number of rows after data cleaning, we create this variable in line 194.It is called prop_type_simplified_new.
+
+
+#we run model12 with transformed factor variables
+model12 <- lm(log_price_4_nights ~ 
+               prop_type_simplified_new + 
+               number_of_reviews + 
+               review_scores_rating + 
+               accommodates+
+               host_is_superhost+
+               neighbourhood_simplified+
+               room_type+
+               beds+
+               cancellation_policy_simplified+
+               host_identity_verified,
+             
+             data = Listings_variables_of_interest)
+
+
+#we get statistics
+model12 %>% broom::tidy()
+model12 %>% broom::glance()
+
+#This checks for multicollinearity
+car::vif(model12)
+
+#Lower adj R-squared but multicollineartity test passed
+```
+All coefficients in Model12 are highly significant, we however see that the adjusted R^2 has dropped. We will make an attempt to improve the models explanatory power by changing the neighbourhood factor variable to include more categories. 
+
+```{r}
+Listings_variables_of_interest <- Listings_variables_of_interest %>%
+  mutate(neighbourhood_new_attempt= case_when(
+    neighbourhood_cleansed=="Eastern"~"Eastern",
+    neighbourhood_cleansed=="Island"~"Island",
+    neighbourhood_cleansed=="Kowloon City"~"Kowloon City",
+    neighbourhood_cleansed=="Kwai Tsing"~"Kwai Tsing",
+    neighbourhood_cleansed=="Kwun Tong"~"Kwun Tong",
+    neighbourhood_cleansed=="North"~"North",
+    neighbourhood_cleansed=="Sha Tin"~"Sha Tin",
+    neighbourhood_cleansed=="Sham Shui Po"~"Sham Shui Po",
+    neighbourhood_cleansed=="Tai Po" ~ "Tai Po",
+    neighbourhood_cleansed=="Wan Chai"~"Wan Chai",
+    neighbourhood_cleansed=="Yau Tsim Mong"~"Yau Tsim Mong",
+    neighbourhood_cleansed=="Yuen Long"~"Yuen Long",
+       TRUE ~ "Other"
+  ))
+
+#we run model13 with transformed factor variables
+model13 <- lm(log_price_4_nights ~ 
+               prop_type_simplified_new + 
+               number_of_reviews + 
+               review_scores_rating + 
+               accommodates+
+               host_is_superhost+
+               neighbourhood_new_attempt+
+               room_type+
+               beds+
+               cancellation_policy_simplified+
+               host_identity_verified,
+             
+             data = Listings_variables_of_interest)
+
+
+#we get statistics
+model13 %>% broom::tidy()
+model13 %>% broom::glance()
+
+#This checks for multicollinearity
+car::vif(model13)
+
+#Unfortunately again added insignificant variables but multicollineartity test passed
+```
+
+We weren't able to change the factor variable in a way that would increase explanatory power of model without adding insignificant variables. Our best model therefore seems to be model 12 which even though having slightly lesser explanatory power, is more parsimonious and only contains significant coefficients.
+
+```{r}
+
+## Diagnostic Checks visually
+library(ggfortify)
+autoplot(model12)+
+  theme_minimal() + 
+  labs (title = "Model 12 Diagnostic Plots")
+```
+
+Residuals vs. Fitted: We can see residuals are around Y=0 and random.
+Normal Q-Q: Normality assumption largely holds as most of the residuals are on the straight line.
+Scale-Location: checks whether residuals have equal/constant variance or not. Positive or negative trends across the fitted values indicate variability that is not constant.
+Residuals vs. Leverage: very few points have high leverage indicating a possibility of a few outliers.
+
+We however check whether OLS assumptions hold using formal tests as well:
+
+```{r}
+
+#perform Breusch-Pagan Test, which checks for heteroscedastcity.
+bptest(model12)
+
+
+```
+Because of p-value under 0.05, we reject null-hypothesis of constant variance. Our estimates are therefore not BLUE and we will need to use heteroscedasticity consistent errors.
+
+```{r}
+
+#perform Breusch-Godfrey Test, which checks for autocorrelation.
+bgtest(model12)
+
+
+```
+Because of p-value under 0.05, our model also suffers from spatial autocorrelation. Our estimates are therefore not BLUE and we should use heteroscedasticty and autocorrelation consistent errors.
+
+```{r}
+
+#we run model12 with robust standard errors
+model12HAC <- lmrob(log_price_4_nights ~ 
+               prop_type_simplified_new + 
+               number_of_reviews + 
+               review_scores_rating + 
+               accommodates+
+               host_is_superhost+
+               neighbourhood_simplified+
+               room_type+
+               beds+
+               cancellation_policy_simplified+
+               host_identity_verified,
+             
+             data = Listings_variables_of_interest)
+
+#we get statistics
+model12HAC %>% broom::tidy()
+model12HAC %>% broom::glance()
+
+#This checks for multicollinearity
+car::vif(model12HAC)
+
+#Unfortunately beds variable is not significant anymore, so we will exclude it
+```
+
+When using robust standard errors, the coefficient on beds becomes insignificant at 95% confidence level, so we exclude it and run our final model.
+
+```{r}
+#we run FINAL model excluding beds from model12HAC
+modelFINAL <- lmrob(log_price_4_nights ~ 
+               prop_type_simplified_new + 
+               number_of_reviews + 
+               review_scores_rating + 
+               accommodates+
+               host_is_superhost+
+               neighbourhood_simplified+
+               room_type+
+               cancellation_policy_simplified+
+               host_identity_verified,
+                 
+             
+             data = Listings_variables_of_interest)
+
+
+#we get statistics
+modelFINAL %>% broom::tidy()
+modelFINAL %>% broom::glance()
+
+#This checks for multicollinearity
+car::vif(modelFINAL)
+
+#All variables are significant and model does not suffer from high level of multicollinearity
+#Calculating adjusted r-squared manually we get 
+adj_r_squared=1-(1-0.517)*(7784-1)/(7784-14-1)
+adj_r_squared
+```
+```{r}
+#This will let us compare several models
+
+huxreg(model1, model2, model3, model4, model5, model6, model7, model8, model9, model10, model11, model12, model13, model12HAC, modelFINAL,
+                 statistics = c('#observations' = 'nobs', 
+                                'R squared' = 'r.squared', 
+                                'Adj. R Squared' = 'adj.r.squared', 
+                                'Residual SE' = 'sigma'), 
+                 bold_signif = 0.05
+) %>% 
+  set_caption('Comparison of models')
+
+```
+
+###Interpretation
+
+Our final model has an adjusted coefficient of determination of 0.516 (we calculated this from the ordinary R^2), meaning that our model explains 51.6% of the variation in the dependent variable. We sacrificed some of the overall explanatory power to arrive at a parsimonious model with only highly significant coefficients. We believe this would suit us more in the prediction.
+
+Coefficient interpretations:
+
+Property type:
+Property types we have identified as hotel, living property and other will have a price_4_night predicted to be 31.5%, 21.2% and 13.2% higher (respectively) than hostels. This shows that hostels are the cheapest - which could be argued is their purpose, while hotels are the generally the most expensive, perhaps because of the cost of staff.
+
+Number of reviews:
+An increase in number of reviews by 1 unit would lead to and expected decrease of 0.065% in price_4_night. This is probably because cheaper accommodation is more likely to have problems associated with it and negatives always trigger reviews, whereas positives not always.
+
+Rating scores:
+An increase in review score by 1 unit would lead to an expected increase of 0.365% in price_4_night. This relationship makes sense as the higher the rating, the higher the expected quality and the more people are willing to pay for their stay.
+
+Accommodates:
+An increase in review score by 1 unit would lead to an expected increase of 13.15% in price_4_night. This is entirely logical, as larger accommodation with a higher number of potential guests will be more expensive.
+
+Host is superhost:
+If the host of the accommodation is a superhost, then the expected price_4_night will be 17.1% higher than if she is was not superhost.
+
+Neighborhood:
+Accommodation in the Kowloon and New Territories areas are expected to be 26.5% and 22.4% cheaper (respectively) than accommodation in Hong Kong Island.
+
+Room type:
+Room type identified as hotel room, private room and shared room are 18.5%, 28.1% and 43.3% cheaper (respectively) than entire home. This is as expected with people obviously willing to pay for privacy and having a whole apartment for themselves.
+
+Cancellation policy:
+Accommodation with strict cancellation policy is 8.7% more expensive in terms of price_4_nights, than accommodation with non-strict policy. This is probably a result of strict cancellation policies being implemented in highly sought after accommodations which are most popular and pricey.
+
+Host identify verified:
+Accommodation with verified hosts is expected to be 4.8% more expensive than accommodation where host is not verified. This probably reflects a premium people are willing to pay for the decreased risk associated with verified hosts as well as the higher quality and price of accommodation offered by hosts who decide to verify.
+
+## Prediction
+
+We use the best model to come up with a prediction. We are planning to visit Hong Kong and want to stay in an Airbnb that is an apartment with a private room, has at least 10 reviews, and an average rating of at least 90. 
+
+```{r best_model_prediction}
+
+# we select: an apartment with a private room, which has at least 10 reviews, and an average rating of at least 90,  to conduct our prediction
+listings_for_prediction <- Listings_variables_of_interest %>% 
+  filter(prop_type_simplified == 'Apartment',
+         room_type == 'Private room',
+         review_scores_rating >= 90,
+         number_of_reviews >= 10) 
+
+# Generate a prediction for each row including confidence interval and exponential transformation
+CI_predictions<- exp(predict(modelFINAL, newdata = listings_for_prediction, interval = "confidence"))
+
+listings_for_prediction<-cbind(listings_for_prediction,CI_predictions)
+
+```
+
+We could also use our model to predict prices based on further factors, to exemplify it, here are the predicted price distributions based on neighborhoods and whether host is a superhost.
+
+```{r graph-predictions, warning=FALSE, fig.width=9}
+
+# Graph distribution of fitted values  
+listings_for_prediction %>% 
+  filter(fit < quantile(fit, probs=.95, na.rm = T)) %>% 
+ggplot( aes(x = fit)) +
+  geom_histogram() +
+  labs(y = "",
+       x = "Price for 2 people for 4 nights [HKD]",
+       title="Predicted price") +
+  theme_classic() +
+  NULL
+
+# Facet by neighborhood  
+exclude_neighbourhood_NA <- listings_for_prediction %>% 
+  filter(!is.na(neighbourhood_simplified),
+         fit < quantile(fit, probs=.95, na.rm = T)) 
+
+ggplot(exclude_neighbourhood_NA, aes(x = fit)) +
+  geom_histogram() +
+  labs(x = "Price for 2 people for 4 nights [HKD]",
+       y = "",
+       title="Predicted distribution for neighborhoods") +
+  facet_wrap(~neighbourhood_simplified) +
+  theme_classic() +
+  NULL
+
+# Facet by superhost
+listings_for_prediction %>% 
+  filter(fit < quantile(fit, probs=.95, na.rm = T)) %>% 
+ggplot(aes(x = fit)) +
+  geom_histogram() +
+  labs(x = "Price for 2 people for 4 nights [HKD]",
+       y = "",
+       title="Predicted distribution based on whether host is superhost") +
+  facet_wrap(~ host_is_superhost) +
+  theme_classic() +
+  NULL
+
+```
+
+Finally we present the overall mean and confidence interval for our prediction.
+
+```{r}
+predicted_mean<-mean(listings_for_prediction$fit, na.rm=TRUE)
+predicted_upper_CI<-mean(listings_for_prediction$upr, na.rm=TRUE)
+predicted_lower_CI<-mean(listings_for_prediction$lwr, na.rm=TRUE)
+
+predicted_mean
+predicted_upper_CI
+predicted_lower_CI
+```
+Our estimated price for 2 people for 4 nights, for a property matching our criteria would be 1878 HKD with a lower 95% C.I. of 1806 HKD and an upper 95% C.I. of 1953 HKD.
+
+
+
