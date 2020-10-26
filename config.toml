@@ -139,12 +139,11 @@ disqusShortname = ""
   [params.two]
     enable = true
     title = "My personal experience"
-    subtitle = """ Chenghong's profile: 
-    Chenghong is a MFA student studying at London Business School. 
+    subtitle = """ Chenghong is a MFA student studying at London Business School. 
     Born in 1998, he is a Chinese student with wide interests on volleyball, Go and jogging.
     """
-    buttonText = "Get Started"
-    url = "blogs"
+    buttonText = "Know more about me"
+    url = "blogs/CV.pdf"
 
 
   # Contact section
