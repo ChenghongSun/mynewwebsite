@@ -94,26 +94,26 @@ disqusShortname = ""
     [[params.tiles.showcase]]
       title = "The airbnb prediction"
       subtitle = "How do we find the airbnb price for two people travelling in HK?"
-      image = "projects/project1_image.png"
-      url = "projects/project1"
+      image = "pic01.jpg"
+      url = "blogs/blog01"
     
     [[params.tiles.showcase]]
-      title = "Tempus"
-      subtitle = "Feugiat Amet Tempus"
+      title = "Donalt Trump"
+      subtitle = "Its vote and supporting rate"
       image = "pic02.jpg"
-      url = "blogs/tempus"
+      url = "blogs/blog02"
 
     [[params.tiles.showcase]]
-      title = "Magna"
-      subtitle = "Lorem Etiam Nullam"
+      title = "CAPM model"
+      subtitle = "Produced by Chenghong"
       image = "pic03.jpg"
-      url = "blogs/magna"
+      url = "blogs/blog03"
 
     [[params.tiles.showcase]]
-      title = "Ipsum"
-      subtitle = "Nisl Sed Aliquam"
+      title = "Mask coverage rate"
+      subtitle = "CS"
       image = "pic04.jpg"
-      url = "blogs/ipsum"
+      url = "blogs/blog04"
 
     [[params.tiles.showcase]]
       title = "Consequat"
