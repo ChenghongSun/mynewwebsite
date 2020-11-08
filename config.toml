@@ -95,7 +95,7 @@ disqusShortname = ""
       title = "The airbnb prediction"
       subtitle = "How do we find the airbnb price for two people travelling in HK?"
       image = "pic01.jpg"
-      url = "blogs/blog01"
+      url = "projects/project1"
     
     [[params.tiles.showcase]]
       title = "Donalt Trump"
