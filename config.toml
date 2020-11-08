@@ -98,8 +98,8 @@ disqusShortname = ""
       url = "blogs/blog01"
     
     [[params.tiles.showcase]]
-      title = ""
-      subtitle = "Climate changes and temperature anomalies"
+      title = "Climate changes and temperature anomalies"
+      subtitle = "We need to take measurements to cope with climate changes"
       image = "pic02.jpg"
       url = "blogs/blog02"
 
