@@ -98,14 +98,14 @@ disqusShortname = ""
       url = "blogs/blog01"
     
     [[params.tiles.showcase]]
-      title = "Donalt Trump"
-      subtitle = "Its vote and supporting rate"
+      title = ""
+      subtitle = "Climate changes and temperature anomalies"
       image = "pic02.jpg"
       url = "blogs/blog02"
 
     [[params.tiles.showcase]]
-      title = "CAPM model"
-      subtitle = "Produced by Chenghong"
+      title = "What I can do with R"
+      subtitle = "Analysis on life expectancy of differenct countries and Brexit voting"
       image = "pic03.jpg"
       url = "blogs/blog03"
 
@@ -119,11 +119,11 @@ disqusShortname = ""
       title = "Consequat"
       subtitle = "Ipsum Dolor Sit Amet"
       image = "pic05.jpg"
-      url = "blogs/ipsum"
+      url = "blogs/OH"
 
     [[params.tiles.showcase]]
-      title = "Etiam"
-      subtitle = "Feugiat Amet Tempus"
+      title = "More about me"
+      subtitle = "My start-up - Offer Hunters"
       image = "pic06.jpg"
       url = "blogs/ipsum"
     # You can make more showcases by copy and pasting the code above
