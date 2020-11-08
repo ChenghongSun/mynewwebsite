@@ -1,17 +1,19 @@
 ---
-categories:
-- ""
-- ""
+  
+  categories:
+  - ""- ""
 date: "2020-10-26"
-description: ""
+description: Analysis on COVID-19 data
 draft: false
-image: pic10.jpg
+image: pic08.jpg
 keywords: ""
-slug: blog1
-title: COVID-19 data
+slug: blog02
+title: COVID-19 Data
 ---
-
+  
+  
 # CDC COVID-19 Public Use Data
+  
 
 ```{r, cache=TRUE}
 
@@ -26,7 +28,17 @@ covid_data <- vroom(url)%>%
 
 ```
 
-```{r plot_1_data, echo=TRUE, results='hide'}
+## These images represent the graphs I would like you to replicate: 
+```{r covid_challenge, echo=FALSE, out.width="100%"}
+
+knitr::include_graphics(here::here("images", "covid_death_rate_comorbidities.png"), error = FALSE)
+knitr::include_graphics(here::here("images", "covid_death_rate_icu.png"), error = FALSE)
+
+```
+
+**(1) - Given the data we have, I would like you to produce a graph that shows death % rate: by age group, sex, and whether the patient had co-morbidities or not**
+  
+  ```{r plot_1_data, echo=TRUE, results='hide'}
 
 plot1_data <- covid_data %>% 
   
@@ -56,6 +68,7 @@ skim(plot1_data)
 
 ```
 
+
 ```{r plot_1_plotting}
 
 plot1_data %>% 
@@ -69,14 +82,14 @@ plot1_data %>%
   
   # add data label for bars
   geom_text(size=2.5, aes(label = round(100*death_rate,digits = 1), # round number
-                y = death_rate + 0.05)) + # adjust position for label
+                          y = death_rate + 0.05)) + # adjust position for label
   
   # facet by sex & co-morbidities status
   facet_grid(cols = vars(sex),
              rows = vars(factor(medcond_yn, ordered = TRUE, # rename and order factor levels 
-                                 levels = c('Yes','No'),
-                                 labels = c('With comorbities',
-                                            'Without comorbidities')))) + 
+                                levels = c('Yes','No'),
+                                labels = c('With comorbities',
+                                           'Without comorbidities')))) + 
   # add labs
   labs(title = '',
        subtitle = 'Covid death % by age group, sex and presence of co-morbidities',
@@ -95,8 +108,7 @@ plot1_data %>%
 ```
 
 
-
-```{r plot_2_data, echo=TRUE, results='hide'}
+  ```{r plot_2_data, echo=TRUE, results='hide'}
 
 plot2_data <- covid_data %>% 
   
@@ -140,14 +152,14 @@ plot2_data %>%
   
   # add data label for bars
   geom_text(size=2.5, aes(label = round(100*death_rate,digits = 1), # round number
-                y = death_rate + 0.05)) + # adjust position for label
+                          y = death_rate + 0.05)) + # adjust position for label
   
   # facet by sex & icu status
   facet_grid(cols = vars(sex),
              rows = vars(factor(icu_yn, ordered = TRUE, # rename and order factor levels 
-                                 levels = c('Yes','No'),
-                                 labels = c('Admitted to ICU','Not admitted to ICU')))) + 
-
+                                levels = c('Yes','No'),
+                                labels = c('Admitted to ICU','Not admitted to ICU')))) + 
+  
   # add labs
   labs(title = '',
        subtitle = 'Covid death % by age group, sex and whether patient was admitted to ICU',

@@ -1,4 +1,7 @@
 ---
+library(knitr); library(markdown)
+knit('project1.Rmd', encoding='UTF-8')
+markdownToHTML(file='project1.md', output='project1.html', encoding='UTF-8')
 
 ```{r setup1, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
