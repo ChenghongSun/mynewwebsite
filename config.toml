@@ -116,10 +116,10 @@ disqusShortname = ""
       url = "blogs/blog04"
 
     [[params.tiles.showcase]]
-      title = ""
-      subtitle = "Ipsum Dolor Sit Amet"
+      title = "LBS and MFA programme"
+      subtitle = "Learn more about London Business School and Master of Financial Analysis"
       image = "pic05.jpg"
-      url = "blogs/"
+      url = "blogs/MFA.pdf"
 
     [[params.tiles.showcase]]
       title = "More about me"
