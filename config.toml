@@ -110,8 +110,8 @@ disqusShortname = ""
       url = "blogs/blog03"
 
     [[params.tiles.showcase]]
-      title = "Mask coverage rate"
-      subtitle = "CS"
+      title = "Youth Risk Behavior Surveillance and IMDB Ratings"
+      subtitle = "Interesting facts on data"
       image = "pic04.jpg"
       url = "blogs/blog04"
 
